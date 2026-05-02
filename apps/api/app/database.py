@@ -4,11 +4,12 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
 from app.config import settings
 
+_testing = settings.environment == "testing"
 engine = create_async_engine(
     settings.database_url,
     echo=False,
-    pool_pre_ping=True,
-    poolclass=NullPool if settings.environment == "testing" else None,
+    poolclass=NullPool if _testing else None,
+    pool_pre_ping=not _testing,
 )
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
