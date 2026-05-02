@@ -109,3 +109,25 @@ def test_blind_user_instructions():
 
     assert "voice_call" in result["channels"]
     assert any("trusted person" in inst for inst in result["instructions"])
+
+
+def test_should_notify_none_severity_not_power_dependent():
+    """None severity + no power dependency → should_notify returns False (conservative default)."""
+    user_profile = {"disability_needs": ["deaf"], "service_animal": False}
+    hazard = {"event_type": "Unknown Event", "severity": None}
+    assert should_notify(user_profile, hazard) is False
+
+
+def test_should_notify_moderate_no_disability():
+    """Moderate severity + no disability needs → should_notify returns True."""
+    user_profile = {"disability_needs": [], "service_animal": False}
+    hazard = {"event_type": "Thunderstorm Warning", "severity": "Moderate"}
+    assert should_notify(user_profile, hazard) is True
+
+
+def test_service_animal_instruction():
+    """User with service_animal=True → emergency kit instruction appended."""
+    user_profile = {"disability_needs": [], "service_animal": True}
+    hazard = {"event_type": "Tornado Warning", "severity": "Extreme", "urgency_level": "Immediate", "area_description": None, "description": None}
+    result = generate_alert_message(user_profile, hazard)
+    assert any("service animal" in inst for inst in result["instructions"])

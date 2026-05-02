@@ -56,7 +56,7 @@ def _build_instructions(event_type: str, disability_needs: list[str], service_an
         instructions.append("Move to higher ground immediately. Do not walk through moving water.")
     elif "Earthquake" in event_type:
         instructions.append("Drop, Cover, and Hold On. Stay away from windows.")
-    elif "Fire" in event_type or "Wildfire" in event_type:
+    elif "Fire" in event_type:
         instructions.append("Evacuate immediately. Follow posted evacuation routes.")
     else:
         instructions.append("Follow instructions from local emergency management.")
@@ -98,7 +98,8 @@ def generate_alert_message(user_profile: dict, hazard: dict) -> dict:
     urgency_level: str | None = hazard.get("urgency_level")
 
     subject = f"{event_type} — Emergency Alert"
-    body = f"A {event_type} has been issued for {area_description or 'your area'}. {description or ''}".strip()
+    base_body = f"A {event_type} has been issued for {area_description or 'your area'}."
+    body = f"{base_body} {description}".strip() if description else base_body
     channels = _build_channels(disability_needs)
     instructions = _build_instructions(event_type, disability_needs, service_animal)
     urgency = _map_urgency(urgency_level)
@@ -124,13 +125,10 @@ def should_notify(user_profile: dict, hazard: dict) -> bool:
     if "power_dependent" in disability_needs:
         return True
 
-    if severity in ("Extreme", "Severe"):
+    if severity in ("Extreme", "Severe", "Moderate"):
         return True
 
-    if severity == "Moderate" and disability_needs:
-        return True
-
-    if severity in ("Minor", "Unknown"):
+    if severity in ("Minor", "Unknown") or severity is None:
         return False
 
-    return True
+    return True  # unknown severity string — default to notifying
