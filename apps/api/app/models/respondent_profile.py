@@ -1,7 +1,7 @@
 # apps/api/app/models/respondent_profile.py
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Boolean, DateTime, JSON, Float
+from sqlalchemy import String, Boolean, DateTime, JSON, Float, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -24,6 +24,8 @@ class RespondentProfile(Base):
     location_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
     location_zip: Mapped[str | None] = mapped_column(String(10), nullable=True)
     background_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    trust_tier: Mapped[int] = mapped_column(Integer, default=1)
+    communication_modes: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
