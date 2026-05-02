@@ -21,6 +21,7 @@ ENV C_INCLUDE_PATH=/usr/include/gdal
 # Install Python deps first (layer cache)
 COPY pyproject.toml .
 RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir psycopg2-binary
 RUN pip install --no-cache-dir -e "."
 
 # Copy app source
