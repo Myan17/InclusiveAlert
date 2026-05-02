@@ -33,12 +33,13 @@ async def test_create_victim_profile():
 async def test_get_victim_profile():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         token = await get_token(client, "v2@test.com")
-        await client.post("/profiles/victim", json={
+        post_resp = await client.post("/profiles/victim", json={
             "disability_needs": ["deaf"],
             "communication_modes": ["asl", "text"],
             "preferred_language": "en",
             "location_zip": "55402",
         }, headers={"Authorization": f"Bearer {token}"})
+        assert post_resp.status_code == 200, f"Profile POST failed: {post_resp.text}"
         resp = await client.get("/profiles/victim", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
     assert "deaf" in resp.json()["disability_needs"]

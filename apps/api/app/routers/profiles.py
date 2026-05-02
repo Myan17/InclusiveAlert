@@ -39,6 +39,8 @@ async def upsert_respondent_profile(
     current_user: UserProfile = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session),
 ):
+    if current_user.role not in ("respondent", "authority"):
+        raise HTTPException(status_code=403, detail="Respondent or authority role required")
     result = await db.execute(
         select(RespondentProfile).where(RespondentProfile.user_id == current_user.id)
     )
@@ -59,6 +61,8 @@ async def get_respondent_profile(
     current_user: UserProfile = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session),
 ):
+    if current_user.role not in ("respondent", "authority"):
+        raise HTTPException(status_code=403, detail="Respondent or authority role required")
     result = await db.execute(
         select(RespondentProfile).where(RespondentProfile.user_id == current_user.id)
     )
