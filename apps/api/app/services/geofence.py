@@ -30,13 +30,12 @@ def compute_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> f
 async def users_in_hazard_zone(
     db: AsyncSession,
     hazard_event_id: str,
-    radius_km: float = 50.0,
+    radius_km: float = 50.0,  # reserved: used when UserProfile gains location_lat/lon + ST_DWithin activates
 ) -> list[dict]:
     """
-    Returns list of {user_id, location_zip, location_state} for users whose
-    stored ZIP centroid falls within the hazard zone.
-    Falls back to returning all users in same state as area_description.
-    PostGIS ST_Contains path activates once users opt in to precise GPS location.
+    Returns list of {user_id, location_zip, location_state, disability_needs} for active users
+    in the hazard zone. Coarse fallback: all users with a known state. Precise PostGIS path
+    requires UserProfile.location_lat/location_lon columns (added when users opt in to GPS).
     """
     sql = text("""
         SELECT up.id AS user_id, up.location_zip, up.location_state, up.disability_needs
@@ -45,7 +44,10 @@ async def users_in_hazard_zone(
         WHERE up.is_active = true
         AND (
             he.geometry IS NOT NULL
-            -- Future: AND ST_Contains(he.geometry, ST_SetSRID(ST_Point(up.location_lon, up.location_lat), 4326))
+            -- Future (requires location_lat/lon on UserProfile):
+            -- AND ST_DWithin(he.geometry::geography,
+            --     ST_SetSRID(ST_Point(up.location_lon, up.location_lat), 4326)::geography,
+            --     :radius_m)
             OR up.location_state IS NOT NULL
         )
         LIMIT 1000
