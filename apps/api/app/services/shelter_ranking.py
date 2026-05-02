@@ -2,13 +2,9 @@ import math
 import logging
 from typing import Any
 import httpx
+from app.services.geofence import compute_distance_km
 
 logger = logging.getLogger(__name__)
-
-FEMA_NSS_URL = (
-    "https://gis.fema.gov/arcgis/rest/services/NSS/FEMA_NSS/MapServer/3/query"
-    "?where=1%3D1&outFields=*&f=json&resultRecordCount=100"
-)
 
 def _distance_score(distance_km: float) -> float:
     """Closer = higher score. 0km → 1.0, 50km → ~0.0"""
@@ -100,7 +96,6 @@ async def fetch_fema_shelters(lat: float, lon: float, radius_km: float = 80.0) -
         s_lon = attrs.get("LONGITUDE") or geom.get("x")
         if not s_lat or not s_lon:
             continue
-        from app.services.geofence import compute_distance_km
         dist = compute_distance_km(lat, lon, float(s_lat), float(s_lon))
         shelters.append({
             "name": attrs.get("SHELTER_NAME", "Unknown Shelter"),
