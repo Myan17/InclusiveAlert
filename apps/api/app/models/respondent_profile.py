@@ -1,6 +1,6 @@
 # apps/api/app/models/respondent_profile.py
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import String, Boolean, DateTime, JSON, Float
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
@@ -18,13 +18,13 @@ class RespondentProfile(Base):
     vehicle_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     equipment: Mapped[list] = mapped_column(JSON, default=list)
     vetting_tier: Mapped[str] = mapped_column(String(20), default="neighbor")
-    availability_status: Mapped[str] = mapped_column(String(20), default="unavailable")
+    availability_status: Mapped[str] = mapped_column(String(20), default="unavailable", index=True)
     max_radius_km: Mapped[float] = mapped_column(Float, default=10.0)
     location_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     location_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
     location_zip: Mapped[str | None] = mapped_column(String(10), nullable=True)
     background_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
     )
