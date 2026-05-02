@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.config import settings
-from app.routers import auth, profiles, alerts
+from app.routers import auth, profiles, alerts, shelters
 from app.services.alert_ingestion import fetch_and_store_nws_alerts, fetch_and_store_usgs_events
 
 scheduler = AsyncIOScheduler()
@@ -47,6 +47,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(profiles.router)
 app.include_router(alerts.router)
+app.include_router(shelters.router)
 
 
 @app.get("/health")
