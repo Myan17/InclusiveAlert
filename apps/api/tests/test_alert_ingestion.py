@@ -59,7 +59,24 @@ def test_normalize_usgs_event():
     assert result["severity"] == "moderate"  # mag 5.2 → moderate
     assert result["external_id"] == "us7000test"
 
-def test_nws_deduplicates_external_id():
-    a = normalize_nws_alert(NWS_ALERT_FIXTURE)
-    b = normalize_nws_alert(NWS_ALERT_FIXTURE)
-    assert a["external_id"] == b["external_id"]
+@pytest.mark.asyncio
+async def test_upsert_deduplicates_external_id():
+    """Second upsert with same external_id returns None (no duplicate row created)."""
+    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+    from sqlalchemy.pool import NullPool
+    from app.services.alert_ingestion import _upsert_event, normalize_nws_alert
+
+    TEST_DB_URL = "postgresql+asyncpg://ia_user:ia_dev_password@localhost:5433/inclusivealert_test"
+    engine = create_async_engine(TEST_DB_URL, poolclass=NullPool)
+    SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
+    data = normalize_nws_alert(NWS_ALERT_FIXTURE)
+    async with SessionLocal() as session:
+        first = await _upsert_event(session, data)
+        await session.commit()
+        second = await _upsert_event(session, data)
+
+    await engine.dispose()
+
+    assert first is not None, "First upsert should create a new HazardEvent"
+    assert second is None, "Second upsert with same external_id should return None (dedup)"

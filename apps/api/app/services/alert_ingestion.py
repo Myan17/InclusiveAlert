@@ -121,7 +121,6 @@ async def _upsert_event(db: AsyncSession, data: dict) -> HazardEvent | None:
         geometry=geom_value,
     )
     db.add(event)
-    await db.commit()
     return event
 
 
@@ -145,6 +144,7 @@ async def fetch_and_store_nws_alerts() -> int:
             result = await _upsert_event(db, data)
             if result:
                 count += 1
+        await db.commit()  # single commit for all new events
     logger.info(f"NWS: ingested {count} new alerts (checked {len(features)})")
     return count
 
@@ -168,5 +168,6 @@ async def fetch_and_store_usgs_events() -> int:
             result = await _upsert_event(db, data)
             if result:
                 count += 1
+        await db.commit()  # single commit for all new events
     logger.info(f"USGS: ingested {count} new events (checked {len(features)})")
     return count
