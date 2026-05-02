@@ -4,8 +4,14 @@ from datetime import datetime, timezone
 from sqlalchemy import String, Float, DateTime, JSON, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
-from geoalchemy2 import Geometry
 from app.database import Base
+
+# Try to import PostGIS — gracefully degrade if not available
+try:
+    from geoalchemy2 import Geometry
+    _POSTGIS = True
+except ImportError:
+    _POSTGIS = False
 
 
 class HazardEvent(Base):
@@ -17,7 +23,13 @@ class HazardEvent(Base):
     severity: Mapped[str] = mapped_column(String(20), nullable=False)
     certainty: Mapped[str] = mapped_column(String(20), nullable=False)
     urgency: Mapped[str] = mapped_column(String(20), nullable=False)
-    geometry: Mapped[object | None] = mapped_column(Geometry("MULTIPOLYGON", srid=4326), nullable=True)
+
+    # PostGIS geometry — only mapped when PostGIS is available
+    if _POSTGIS:
+        geometry: Mapped[object | None] = mapped_column(
+            Geometry("MULTIPOLYGON", srid=4326), nullable=True
+        )
+
     area_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     headline: Mapped[str | None] = mapped_column(Text, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -4,8 +4,14 @@ from datetime import datetime, timezone
 from sqlalchemy import String, Boolean, Integer, Float, DateTime, JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
-from geoalchemy2 import Geometry
 from app.database import Base
+
+# Try to import PostGIS — gracefully degrade if not available
+try:
+    from geoalchemy2 import Geometry
+    _POSTGIS = True
+except ImportError:
+    _POSTGIS = False
 
 
 class Shelter(Base):
@@ -14,7 +20,15 @@ class Shelter(Base):
     external_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
-    location: Mapped[object] = mapped_column(Geometry("POINT", srid=4326), nullable=False)
+
+    # PostGIS geometry column — only used when PostGIS is available
+    if _POSTGIS:
+        location: Mapped[object] = mapped_column(Geometry("POINT", srid=4326), nullable=True)
+    
+    # Plain lat/lon fallback — always present
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lon: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     status: Mapped[str] = mapped_column(String(20), default="open")
     capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     current_occupancy: Mapped[int | None] = mapped_column(Integer, nullable=True)
