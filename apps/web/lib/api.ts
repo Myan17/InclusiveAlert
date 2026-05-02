@@ -1,6 +1,6 @@
 // lib/api.ts
 import type {
-  UserProfile, HazardEvent, Shelter, MatchAssignmentResponse
+  UserProfile, HazardEvent, Shelter, MatchAssignmentResponse, VictimListResponse, RespondentProfile
 } from "@/lib/types"
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
@@ -57,6 +57,13 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }, token),
+    getRespondent: (token: string) =>
+      request<RespondentProfile>("/profiles/respondent", {}, token),
+    updateRespondent: (token: string, data: Partial<RespondentProfile>) =>
+      request<RespondentProfile>("/profiles/respondent", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }, token),
   },
   alerts: {
     active: (token: string) =>
@@ -77,5 +84,7 @@ export const api = {
         {},
         token
       ),
+    victims: (token: string) =>
+      request<VictimListResponse>("/matching/victims", {}, token),
   },
 }
