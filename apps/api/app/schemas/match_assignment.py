@@ -1,6 +1,5 @@
 # apps/api/app/schemas/match_assignment.py
-from pydantic import BaseModel, ConfigDict
-from typing import Any
+from pydantic import BaseModel
 
 
 class MatchBreakdown(BaseModel):

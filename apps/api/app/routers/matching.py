@@ -24,6 +24,8 @@ async def assign_respondents(
     Rank available respondents for the current victim by MatchScore.
     Returns the top 10 best-matching respondents.
     """
+    # Pre-filter at DB level; _availability_score in matching_engine still handles
+    # "unavailable" → 0.0 so the service layer is correct if this filter is ever relaxed.
     result = await db.execute(
         select(RespondentProfile).where(
             RespondentProfile.availability_status != "unavailable"
