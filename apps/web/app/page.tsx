@@ -1,4 +1,4 @@
 import { redirect } from "next/navigation"
-export default function Root() {
+export default async function Root() {
   redirect("/dashboard")
 }
