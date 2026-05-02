@@ -35,5 +35,9 @@ async def override_db():
             yield session
     fastapi_app.dependency_overrides[get_async_session] = _get_test_session
     yield
+    # Truncate all tables to prevent state leakage between tests
+    async with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
     fastapi_app.dependency_overrides.clear()
     await engine.dispose()

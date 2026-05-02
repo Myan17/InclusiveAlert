@@ -46,6 +46,9 @@ async def register_user(db: AsyncSession, email: str, password: str, role: str) 
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> Optional[UserProfile]:
     result = await db.execute(select(UserProfile).where(UserProfile.email == email))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(password, user.hashed_password):
+    if not user:
+        pwd_context.dummy_verify()  # Constant-time: prevent email enumeration
+        return None
+    if not verify_password(password, user.hashed_password):
         return None
     return user
