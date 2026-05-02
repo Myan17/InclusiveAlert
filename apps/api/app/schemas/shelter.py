@@ -8,6 +8,7 @@ class ShelterResponse(BaseModel):
     wheelchair_accessible: bool
     ada_compliant: bool
     generator_onsite: bool
+    asl_support: bool = False
     pet_policy: str
     status: str
     capacity: Optional[int] = None

@@ -45,7 +45,8 @@ export interface Shelter {
   wheelchair_accessible: boolean
   ada_compliant: boolean
   generator_onsite: boolean
-  pet_policy: "pets_allowed" | "no_pets"
+  asl_support: boolean
+  pet_policy: "pets_allowed" | "no_pets" | "service_animals_only"
   status: string
   capacity: number | null
   current_occupancy: number | null
@@ -72,5 +73,43 @@ export interface MatchResult {
 
 export interface MatchAssignmentResponse {
   results: MatchResult[]
+  total: number
+}
+
+export interface RespondentProfile {
+  id: string
+  user_id: string
+  skills: string[]
+  languages: string[]
+  asl_level: string
+  vehicle_type: string | null
+  equipment: string[]
+  vetting_tier: string
+  availability_status: AvailabilityStatus
+  max_radius_km: number
+  location_lat: number | null
+  location_lon: number | null
+  location_zip: string | null
+  organization_id: string | null
+  background_verified: boolean
+  trust_tier: number
+  communication_modes: string[]
+}
+
+export interface VictimSummary {
+  user_id: string
+  email: string
+  disability_needs: string[]
+  communication_modes: string[]
+  service_animal: boolean
+  power_dependency: boolean
+  location_zip: string | null
+  location_city: string | null
+  location_state: string | null
+  urgency_score: number
+}
+
+export interface VictimListResponse {
+  victims: VictimSummary[]
   total: number
 }
