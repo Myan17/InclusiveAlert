@@ -25,7 +25,7 @@ export function Sidebar() {
 
   function handleLogout() {
     logout()
-    router.push("/login")
+    router.replace("/login")
   }
 
   return (
