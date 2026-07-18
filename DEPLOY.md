@@ -1,152 +1,120 @@
 # InclusiveAlert — Deployment Guide
 
 ## Architecture
-- **Frontend** → Vercel (Next.js)
-- **Backend API** → Railway (FastAPI + Python)
-- **Database** → Railway PostgreSQL with PostGIS
-- **Redis** → Railway Redis (optional — used for caching)
+- **Frontend** → GitHub Pages (Next.js static export) — auto-deployed by GitHub Actions
+- **Backend API** → Render (FastAPI in Docker)
+- **Database** → Render PostgreSQL (PostGIS enabled by the migration)
+
+The frontend is a fully static site (`output: "export"`) served at
+`https://myan17.github.io/InclusiveAlert/`. It talks to the Render backend over
+HTTPS using the `NEXT_PUBLIC_API_URL` baked in at build time.
 
 ---
 
-## Step 1: Deploy the Backend to Railway
+## Step 1: Deploy the Backend to Render
 
-### 1a. Create a Railway account
-Go to https://railway.app and sign up (free tier available).
+### 1a. One-click deploy
+Click the button (or open the link) to deploy the `render.yaml` blueprint —
+it provisions the FastAPI service **and** a free Postgres database, fully wired:
 
-### 1b. Create a new project
-1. Click **New Project** → **Deploy from GitHub repo**
-2. Connect your GitHub account and select this repo
-3. Set the **Root Directory** to `inclusive-alert/apps/api`
+**https://render.com/deploy?repo=https://github.com/Myan17/InclusiveAlert**
 
-### 1c. Add PostgreSQL with PostGIS
-1. In your Railway project, click **+ New** → **Database** → **PostgreSQL**
-2. After it provisions, click the Postgres service → **Variables** tab
-3. Copy the `DATABASE_URL` value — you'll need it
+Render reads `render.yaml`, builds `apps/api/Dockerfile`, creates the database,
+injects `DATABASE_URL`, and generates a random `SECRET_KEY`. On boot the
+container runs `alembic upgrade head` (which enables PostGIS) then starts uvicorn.
 
-> **Important:** Railway's default Postgres doesn't include PostGIS.
-> Use the **PostGIS** template instead:
-> Click **+ New** → **Template** → search "PostGIS" → deploy it.
+### 1b. Grab your API URL
+After the service is **Live**, Render shows a URL like
+`https://inclusivealert-api.onrender.com`.
 
-### 1d. Set environment variables in Railway
-In your API service → **Variables** tab, add:
+Test it: `curl https://<your-api>.onrender.com/health` → `{"status":"ok"}`
 
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | `postgresql+asyncpg://...` (from Railway Postgres, change `postgresql://` to `postgresql+asyncpg://`) |
-| `SECRET_KEY` | Generate with: `python3 -c "import secrets; print(secrets.token_hex(32))"` |
-| `ENVIRONMENT` | `production` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` |
-| `ALERT_POLL_INTERVAL_SECONDS` | `300` |
-| `ALLOWED_ORIGINS` | `https://your-app.vercel.app` (add after Vercel deploy) |
-| `REDIS_URL` | `redis://...` (optional — add Railway Redis if needed) |
+> **Free tier note:** the web service sleeps after ~15 min idle; the first
+> request after sleeping takes ~50s to cold-start. The free Postgres database
+> is retained for 30 days.
 
-### 1e. Deploy
-Railway auto-deploys on push. The `railway.toml` runs:
-```
-alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
-
-### 1f. Get your API URL
-After deploy, Railway gives you a URL like:
-`https://inclusive-alert-api-production.up.railway.app`
-
-Test it: `curl https://your-api.up.railway.app/health` → `{"status":"ok"}`
-
----
-
-## Step 2: Deploy the Frontend to Vercel
-
-### 2a. Install Vercel CLI (optional but faster)
+### 1c. Seed demo data (optional)
 ```bash
-npm install -g vercel
+# Point BASE at your Render URL first, then:
+python3 demo_seed.py
 ```
-
-### 2b. Deploy via CLI
-```bash
-cd inclusive-alert/apps/web
-vercel
-```
-When prompted:
-- **Set up and deploy?** → Yes
-- **Which scope?** → Your account
-- **Link to existing project?** → No
-- **Project name?** → `inclusive-alert`
-- **Directory?** → `./` (already in apps/web)
-- **Override build settings?** → No
-
-### 2c. OR deploy via Vercel dashboard
-1. Go to https://vercel.com/new
-2. Import your GitHub repo
-3. Set **Root Directory** to `inclusive-alert/apps/web`
-4. Framework: **Next.js** (auto-detected)
-
-### 2d. Set environment variables in Vercel
-In Vercel → Project → **Settings** → **Environment Variables**:
-
-| Variable | Value |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | `https://your-api.up.railway.app` |
-
-### 2e. Redeploy
-After adding the env var, trigger a redeploy:
-```bash
-vercel --prod
-```
-Or push a commit to your main branch.
 
 ---
 
-## Step 3: Update CORS on Railway
+## Step 2: Point the Frontend at your Backend
 
-After you have your Vercel URL (e.g. `https://inclusive-alert.vercel.app`):
+The GitHub Actions workflow (`.github/workflows/deploy-pages.yml`) builds the
+static site with `NEXT_PUBLIC_API_URL`. It defaults to
+`https://inclusivealert-api.onrender.com`. If your Render URL differs:
 
-1. Go to Railway → API service → Variables
-2. Set `ALLOWED_ORIGINS` = `https://inclusive-alert.vercel.app`
-3. Railway auto-redeploys
+1. Repo → **Settings** → **Secrets and variables** → **Actions** → **Variables**
+2. Add a repository **variable** `NEXT_PUBLIC_API_URL` = your Render URL
+3. Re-run the workflow (Actions tab → **Deploy frontend to GitHub Pages** →
+   **Run workflow**), or push any change under `apps/web/`.
+
+The backend's CORS allow-list already includes `https://myan17.github.io`
+(set via `ALLOWED_ORIGINS` in `render.yaml`).
 
 ---
 
-## Step 4: Seed demo data on production
+## Step 3: Frontend is deployed automatically
+
+GitHub Pages is served from GitHub Actions (no manual build needed). Every push
+to `main` that touches `apps/web/**` rebuilds and redeploys the site to:
+
+**https://myan17.github.io/InclusiveAlert/**
+
+Pages must be set to **Source: GitHub Actions** (Settings → Pages). This is
+already enabled for this repo.
+
+---
+
+## Deploy Checklist
+
+- [ ] Render blueprint deployed — `/health` returns `{"status":"ok"}`
+- [ ] Render API URL noted
+- [ ] `NEXT_PUBLIC_API_URL` matches the Render URL (repo variable, if different from default)
+- [ ] GitHub Pages source = GitHub Actions
+- [ ] Pages workflow is green — site loads at `myan17.github.io/InclusiveAlert/`
+- [ ] Login → alerts → shelters → matching → profile flow works end to end
+
+---
+
+## Local development
 
 ```bash
-# Update BASE in demo_seed.py to your Railway API URL first
-BASE = "https://your-api.up.railway.app"
+# Backend (needs Docker for Postgres/PostGIS)
+docker compose up -d db redis
+cd apps/api
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+export DATABASE_URL=postgresql+asyncpg://ia_user:ia_dev_password@localhost:5432/inclusivealert
+export SECRET_KEY=dev-secret-key-change-in-production-min-32-chars
+alembic upgrade head
+uvicorn app.main:app --reload
 
-python3 inclusive-alert/demo_seed.py
+# Frontend
+cd apps/web
+npm install
+NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
 ```
-
----
-
-## Quick Deploy Checklist
-
-- [ ] Railway project created with PostGIS database
-- [ ] `DATABASE_URL` set in Railway (with `asyncpg` driver)
-- [ ] `SECRET_KEY` set in Railway (32+ char random string)
-- [ ] `ENVIRONMENT=production` set in Railway
-- [ ] API deploys successfully — `/health` returns `{"status":"ok"}`
-- [ ] Vercel project created, root dir = `inclusive-alert/apps/web`
-- [ ] `NEXT_PUBLIC_API_URL` set in Vercel
-- [ ] Frontend deploys — login page loads
-- [ ] `ALLOWED_ORIGINS` updated in Railway with Vercel URL
-- [ ] Demo seed script run against production API
-- [ ] Full login → alerts → shelters → matching → profile flow tested
 
 ---
 
 ## Troubleshooting
 
-**"Failed to fetch" on Vercel frontend**
-→ Check `NEXT_PUBLIC_API_URL` is set correctly in Vercel env vars
-→ Check `ALLOWED_ORIGINS` includes your Vercel domain in Railway
+**"Failed to fetch" on the deployed site**
+→ Confirm `NEXT_PUBLIC_API_URL` (repo variable) points at the live Render URL and
+  the workflow was re-run after changing it.
+→ The Render free service may be cold-starting (~50s on first hit).
+→ Confirm `ALLOWED_ORIGINS` on Render includes `https://myan17.github.io`.
 
-**Alembic migration fails on Railway**
-→ Ensure `DATABASE_URL` uses `postgresql+asyncpg://` not `postgresql://`
-→ Check PostGIS extension is enabled: Railway PostGIS template does this automatically
+**Blank page / 404 for assets on GitHub Pages**
+→ The site lives under the `/InclusiveAlert` sub-path; the build sets
+  `NEXT_PUBLIC_BASE_PATH=/InclusiveAlert`. Don't open asset URLs without that prefix.
 
-**PostGIS not available**
-→ Use the Railway PostGIS template, not the plain PostgreSQL template
-→ Or run: `CREATE EXTENSION IF NOT EXISTS postgis;` in your DB console
-
-**Build fails on Vercel**
-→ Ensure root directory is set to `inclusive-alert/apps/web`
-→ Check Node version: Vercel uses Node 20 by default (compatible)
+**Alembic migration fails on Render**
+→ `DATABASE_URL` is injected from the Render database automatically;
+  `app/database.py` rewrites the scheme to `postgresql+asyncpg://`.
+→ PostGIS is created by the initial migration; if unavailable the schema still
+  builds (geometry columns degrade gracefully).

@@ -1,0 +1,38 @@
+# Render blueprint — one-click deploy of the InclusiveAlert backend.
+# Provisions the FastAPI (Docker) service + a Postgres database, fully wired.
+# Deploy: https://render.com/deploy?repo=https://github.com/Myan17/InclusiveAlert
+#
+# The Dockerfile CMD runs `alembic upgrade head` before uvicorn, so the schema
+# (incl. `CREATE EXTENSION IF NOT EXISTS postgis`) is applied on every deploy.
+
+databases:
+  - name: inclusivealert-db
+    plan: free
+    databaseName: inclusivealert
+    user: ia_user
+
+services:
+  - type: web
+    name: inclusivealert-api
+    runtime: docker
+    plan: free
+    rootDir: apps/api
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      # Render supplies postgresql://... ; app/database.py rewrites it to asyncpg.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: inclusivealert-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: ALERT_POLL_INTERVAL_SECONDS
+        value: "300"
+      # CORS: the GitHub Pages origin (path is not part of the origin).
+      - key: ALLOWED_ORIGINS
+        value: https://myan17.github.io
