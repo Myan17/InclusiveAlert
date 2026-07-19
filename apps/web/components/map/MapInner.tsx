@@ -20,17 +20,13 @@ function LocationTracker() {
 
   useEffect(() => {
     if (didSet.current) return
-    // Always seed demo location immediately so shelters/matching load
+    // Pin to the Houston demo location, where all seeded shelters and
+    // responders live. Real geolocation is intentionally NOT used: the demo
+    // dataset is Houston-only, so a viewer's actual location would show
+    // "no shelters nearby" and poor match scores. (To run against a viewer's
+    // real location, restore navigator.geolocation.getCurrentPosition here.)
     setUserLocation(DEMO_LAT, DEMO_LON)
     didSet.current = true
-
-    // Then try to get real location and override
-    if (!navigator.geolocation) return
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setUserLocation(pos.coords.latitude, pos.coords.longitude),
-      () => {}, // keep demo location on denial
-      { timeout: 5000 }
-    )
   }, [setUserLocation])
 
   return null
