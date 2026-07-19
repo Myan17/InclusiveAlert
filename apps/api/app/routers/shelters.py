@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
@@ -8,6 +9,8 @@ from app.models.shelter import Shelter
 from app.schemas.shelter import ShelterResponse
 from app.services.shelter_ranking import fetch_fema_shelters, rank_shelters, compute_shelter_score
 from app.services.geofence import compute_distance_km
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/shelters", tags=["shelters"])
 
@@ -104,6 +107,9 @@ async def get_ranked_shelters(
                     "source": shelter.source or "db",
                 })
     except Exception:
+        # Don't let a DB read error silently fall through to the FEMA fallback
+        # with no trace — surface it in logs (a schema/query bug hides here otherwise).
+        logger.exception("DB shelter query failed; falling back to FEMA NSS")
         db_shelters = []
 
     if db_shelters:
