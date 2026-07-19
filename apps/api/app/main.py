@@ -13,7 +13,7 @@ scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if settings.environment != "testing":
+    if settings.environment != "testing" and settings.enable_live_ingestion:
         scheduler.add_job(
             fetch_and_store_nws_alerts,
             "interval",
@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
         await fetch_and_store_nws_alerts()
         await fetch_and_store_usgs_events()
     yield
-    if settings.environment != "testing":
+    if settings.environment != "testing" and settings.enable_live_ingestion:
         scheduler.shutdown()
 
 

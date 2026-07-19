@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     alert_poll_interval_seconds: int = 60
     environment: str = "development"
+    # When false, the NWS/USGS live ingestion scheduler is disabled so the app
+    # serves only the curated demo alerts (set ENABLE_LIVE_INGESTION=false).
+    enable_live_ingestion: bool = True
 
 
 settings = Settings()
