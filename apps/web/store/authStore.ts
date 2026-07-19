@@ -24,8 +24,13 @@ interface AuthState {
   token: string | null
   email: string | null
   role: string | null
+  // False until zustand-persist has rehydrated from localStorage. Guards must
+  // wait for this before redirecting, or a refresh/deep-link bounces to /login
+  // while token is still transiently null.
+  hasHydrated: boolean
   setToken: (token: string) => void
   logout: () => void
+  setHasHydrated: (v: boolean) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -34,12 +39,19 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       email: null,
       role: null,
+      hasHydrated: false,
       setToken: (token) => {
         const decoded = decodeToken(token)
         set({ token, email: decoded?.sub ?? null, role: decoded?.role ?? null })
       },
       logout: () => set({ token: null, email: null, role: null }),
+      setHasHydrated: (v) => set({ hasHydrated: v }),
     }),
-    { name: "ia-auth" }
+    {
+      name: "ia-auth",
+      // Only persist the identity fields, never the hydration flag.
+      partialize: (s) => ({ token: s.token, email: s.email, role: s.role }),
+      onRehydrateStorage: () => (state) => state?.setHasHydrated(true),
+    }
   )
 )

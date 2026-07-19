@@ -87,7 +87,7 @@ export function AlertCard({ alert, selected }: AlertCardProps) {
         aria-label={`${alert.severity} alert: ${alert.headline ?? alert.hazard_type}`}
         aria-expanded={expanded}
         onKeyDown={(e) => e.key === "Enter" && setSelectedAlert(alert.id)}
-        className={`border border-border/60 border-l-4 ${cfg.border} ${cfg.bg} cursor-pointer transition-all duration-200 shadow-lg ${cfg.glow} ${
+        className={`shrink-0 border border-border/60 border-l-4 ${cfg.border} ${cfg.bg} cursor-pointer transition-all duration-200 shadow-lg ${cfg.glow} ${
           selected ? "ring-2 ring-blue-500 ring-offset-1 ring-offset-background" : "hover:border-border hover:brightness-110"
         }`}
       >

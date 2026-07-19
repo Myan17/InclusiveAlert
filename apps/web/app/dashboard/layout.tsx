@@ -6,14 +6,16 @@ import { Sidebar } from "@/components/layout/Sidebar"
 import { MapPanel } from "@/components/map/MapPanel"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { token } = useAuthStore()
+  const { token, hasHydrated } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
-    if (!token) router.replace("/login")
-  }, [token, router])
+    // Wait for persisted auth to rehydrate before deciding to redirect,
+    // otherwise a refresh/deep-link bounces to /login.
+    if (hasHydrated && !token) router.replace("/login")
+  }, [hasHydrated, token, router])
 
-  if (!token) return null
+  if (!hasHydrated || !token) return null
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
