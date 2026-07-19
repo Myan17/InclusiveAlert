@@ -62,7 +62,8 @@ export function AlertCard({ alert, selected }: AlertCardProps) {
   const [showAsl, setShowAsl] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const sev = alert.severity as Severity
-  const cfg = severityConfig[sev]
+  // Defensive: never let an unexpected severity key crash the whole dashboard.
+  const cfg = severityConfig[sev] ?? severityConfig.Unknown
   const tags = parseAccessibilityTags(alert.instruction)
   const instruction = cleanInstruction(alert.instruction)
   const emoji = hazardEmoji[alert.hazard_type] ?? "⚠️"

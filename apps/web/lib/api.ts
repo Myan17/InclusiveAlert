@@ -1,9 +1,25 @@
 // lib/api.ts
 import type {
-  UserProfile, HazardEvent, Shelter, MatchAssignmentResponse, VictimListResponse, RespondentProfile
+  UserProfile, HazardEvent, Shelter, MatchAssignmentResponse, VictimListResponse, RespondentProfile, Severity
 } from "@/lib/types"
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+
+// The API emits lowercase severity/urgency ("severe", "immediate"), but the
+// frontend types and lookups are Capitalized. Normalize at the boundary so
+// every consumer sees the declared shape (and no lookup returns undefined).
+const SEVERITIES: Severity[] = ["Extreme", "Severe", "Moderate", "Minor", "Unknown"]
+function capitalize(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s
+}
+function normalizeAlert(a: HazardEvent): HazardEvent {
+  const sev = capitalize(a.severity as unknown as string) as Severity
+  return {
+    ...a,
+    severity: SEVERITIES.includes(sev) ? sev : "Unknown",
+    urgency: capitalize(a.urgency),
+  }
+}
 
 export function buildHeaders(token: string | null): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
@@ -67,7 +83,7 @@ export const api = {
   },
   alerts: {
     active: (token: string) =>
-      request<HazardEvent[]>("/alerts/active", {}, token),
+      request<HazardEvent[]>("/alerts/active", {}, token).then((rows) => rows.map(normalizeAlert)),
   },
   shelters: {
     ranked: (token: string, lat: number, lon: number, radius_km = 80) =>
