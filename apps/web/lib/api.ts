@@ -1,6 +1,6 @@
 // lib/api.ts
 import type {
-  UserProfile, HazardEvent, Shelter, MatchAssignmentResponse, VictimListResponse, RespondentProfile, Severity
+  UserProfile, HazardEvent, Shelter, MatchAssignmentResponse, VictimListResponse, RespondentProfile, Severity, ShelterDetail
 } from "@/lib/types"
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
@@ -92,6 +92,12 @@ export const api = {
         {},
         token
       ),
+    // Authority-only management endpoints.
+    list: (token: string) => request<ShelterDetail[]>("/shelters", {}, token),
+    create: (token: string, data: Record<string, unknown>) =>
+      request<ShelterDetail>("/shelters", { method: "POST", body: JSON.stringify(data) }, token),
+    patch: (token: string, id: string, data: Record<string, unknown>) =>
+      request<ShelterDetail>(`/shelters/${id}`, { method: "PATCH", body: JSON.stringify(data) }, token),
   },
   matching: {
     assign: (token: string, lat: number, lon: number) =>

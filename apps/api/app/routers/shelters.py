@@ -137,6 +137,20 @@ async def get_ranked_shelters(
     return ranked[:10]
 
 
+@router.get("", response_model=list[ShelterDetail])
+async def list_shelters(
+    current_user: UserProfile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session),
+    limit: int = Query(200, le=500),
+):
+    """Authority list of shelters to review/enrich (includes ids for PATCH)."""
+    _require_authority(current_user)
+    rows = (
+        await db.execute(select(Shelter).order_by(Shelter.name).limit(limit))
+    ).scalars().all()
+    return rows
+
+
 @router.post("", response_model=ShelterDetail, status_code=status.HTTP_201_CREATED)
 async def create_shelter(
     payload: ShelterCreate,

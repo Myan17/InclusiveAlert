@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, MapPin, Users, User, LogOut, Shield, AlertTriangle } from "lucide-react"
+import { Bell, MapPin, Users, User, LogOut, Shield, AlertTriangle, ClipboardCheck } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { useAlerts } from "@/lib/useAlerts"
 import { Button } from "@/components/ui/button"
@@ -35,6 +35,9 @@ export function Sidebar() {
   const router = useRouter()
   const { email, role, logout } = useAuthStore()
   const rc = roleConfig[role ?? "victim"] ?? roleConfig.victim
+  const items = role === "authority"
+    ? [...navItems, { href: "/dashboard/manage-shelters", label: "Manage Shelters", icon: ClipboardCheck }]
+    : navItems
 
   function handleLogout() {
     logout()
@@ -66,7 +69,7 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-3 flex flex-col gap-0.5">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (
             <Link
