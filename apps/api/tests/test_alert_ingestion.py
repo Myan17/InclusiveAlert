@@ -98,6 +98,57 @@ def test_normalize_eonet_event_missing_geometry_defaults_time():
     assert r["external_id"] == "EONET_X"
     assert r["effective_at"] is not None  # falls back to now, never crashes
 
+
+NWS_POLYGON_FIXTURE = {
+    "id": "https://api.weather.gov/alerts/POLY-TEST",
+    "properties": {
+        "event": "Flash Flood Warning",
+        "severity": "Severe",
+        "certainty": "Likely",
+        "urgency": "Immediate",
+        "headline": "Flash Flood Warning issued",
+        "description": "Flooding is imminent.",
+        "instruction": "Move to higher ground.",
+        "effective": "2026-05-01T12:00:00-05:00",
+        "expires": "2026-05-01T15:00:00-05:00",
+        "areaDesc": "Harris County, TX",
+    },
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-95.4, 29.7], [-95.3, 29.7], [-95.3, 29.8], [-95.4, 29.8], [-95.4, 29.7]]],
+    },
+}
+
+
+def test_normalize_nws_alert_with_polygon_geometry():
+    """A GeoJSON Polygon becomes a MULTIPOLYGON WKT that fits the geometry column."""
+    r = normalize_nws_alert(NWS_POLYGON_FIXTURE)
+    assert r["geometry_wkt"] is not None
+    assert r["geometry_wkt"].upper().startswith("MULTIPOLYGON")
+
+
+def test_normalize_nws_alert_no_geometry_is_none():
+    r = normalize_nws_alert(NWS_ALERT_FIXTURE)  # geometry: None
+    assert r["geometry_wkt"] is None
+
+
+@pytest.mark.asyncio
+async def test_nws_polygon_upserts_into_geometry_column():
+    """The MULTIPOLYGON WKT round-trips through _upsert_event into PostGIS."""
+    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+    from sqlalchemy.pool import NullPool
+    from app.services.alert_ingestion import _upsert_event
+
+    url = "postgresql+asyncpg://ia_user:ia_dev_password@localhost:5433/inclusivealert_test"
+    engine = create_async_engine(url, poolclass=NullPool)
+    SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    data = normalize_nws_alert(NWS_POLYGON_FIXTURE)
+    async with SessionLocal() as session:
+        created = await _upsert_event(session, data)
+        await session.commit()
+    await engine.dispose()
+    assert created is not None
+
 @pytest.mark.asyncio
 async def test_upsert_deduplicates_external_id():
     """Second upsert with same external_id returns None (no duplicate row created)."""
