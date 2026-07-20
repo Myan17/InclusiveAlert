@@ -14,15 +14,17 @@ def _accessibility_fit_score(shelter: dict, victim_needs: dict) -> float:
     score = 1.0
     needs = set(victim_needs.get("disability_needs", []))
 
-    if "mobility_wheelchair" in needs and not shelter.get("wheelchair_accessible"):
+    # `is not True` = confirmed-accessible only earns credit; None (unconfirmed)
+    # and False both lose it. Unknown is never treated as safe.
+    if "mobility_wheelchair" in needs and shelter.get("wheelchair_accessible") is not True:
         score -= 0.5  # critical miss
-    if "mobility_wheelchair" in needs and not shelter.get("ada_compliant"):
+    if "mobility_wheelchair" in needs and shelter.get("ada_compliant") is not True:
         score -= 0.2
-    if "power_dependent" in needs and not shelter.get("generator_onsite"):
+    if "power_dependent" in needs and shelter.get("generator_onsite") is not True:
         score -= 0.4  # critical miss for oxygen/ventilator users
     if victim_needs.get("service_animal") and shelter.get("pet_policy") == "no_pets":
         score -= 0.3  # service animals are a legal right, but flag if listed as no_pets
-    if "deaf" in needs and not shelter.get("asl_support", False):
+    if "deaf" in needs and shelter.get("asl_support") is not True:
         score -= 0.1
 
     return max(0.0, score)

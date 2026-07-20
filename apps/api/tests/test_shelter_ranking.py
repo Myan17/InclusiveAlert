@@ -1,5 +1,18 @@
 import pytest
-from app.services.shelter_ranking import compute_shelter_score, rank_shelters
+from app.services.shelter_ranking import compute_shelter_score, rank_shelters, _accessibility_fit_score
+
+
+def test_unknown_accessibility_is_not_treated_as_accessible():
+    """NULL/None accessibility (unconfirmed real data) must never earn the
+    accessible bonus — a wheelchair user is never routed to an unconfirmed
+    shelter as if it were accessible. Confirmed-accessible ranks strictly above."""
+    needs = {"disability_needs": ["mobility_wheelchair"]}
+    confirmed = _accessibility_fit_score({"wheelchair_accessible": True, "ada_compliant": True}, needs)
+    unknown = _accessibility_fit_score({"wheelchair_accessible": None, "ada_compliant": None}, needs)
+    confirmed_not = _accessibility_fit_score({"wheelchair_accessible": False, "ada_compliant": False}, needs)
+    assert confirmed == 1.0
+    assert unknown < confirmed        # unconfirmed loses to confirmed-accessible
+    assert confirmed_not < confirmed  # confirmed-not also loses to confirmed-accessible
 
 VICTIM_NEEDS = {
     "disability_needs": ["mobility_wheelchair", "power_dependent"],
