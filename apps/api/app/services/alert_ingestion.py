@@ -94,6 +94,25 @@ def normalize_usgs_event(feature: dict) -> dict:
     }
 
 
+# Generous US bounding box (incl. Alaska, Hawaii, Puerto Rico) — EONET is global,
+# but InclusiveAlert serves the US, so non-US wildfires are filtered out.
+_US_BBOX = {"lat_min": 15.0, "lat_max": 72.0, "lon_min": -180.0, "lon_max": -64.0}
+
+
+def _eonet_in_us(event: dict) -> bool:
+    geoms = event.get("geometry") or []
+    if not geoms:
+        return False
+    coords = geoms[-1].get("coordinates")
+    if not coords or len(coords) < 2:
+        return False
+    lon, lat = coords[0], coords[1]
+    return (
+        _US_BBOX["lat_min"] <= lat <= _US_BBOX["lat_max"]
+        and _US_BBOX["lon_min"] <= lon <= _US_BBOX["lon_max"]
+    )
+
+
 def normalize_eonet_event(event: dict) -> dict:
     """NASA EONET wildfire event → hazard_event dict.
 
@@ -236,13 +255,14 @@ async def fetch_and_store_eonet_wildfires() -> int:
             logger.error(f"EONET fetch failed: {e}")
             return 0
 
+    us_events = [e for e in events if _eonet_in_us(e)]
     count = 0
     async with AsyncSessionLocal() as db:
-        for event in events:
+        for event in us_events:
             data = normalize_eonet_event(event)
             result = await _upsert_event(db, data)
             if result:
                 count += 1
         await db.commit()
-    logger.info(f"EONET: ingested {count} new wildfires (checked {len(events)})")
+    logger.info(f"EONET: ingested {count} US wildfires (checked {len(events)}, {len(us_events)} in US)")
     return count

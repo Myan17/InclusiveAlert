@@ -91,6 +91,16 @@ def test_normalize_eonet_event():
     assert r["effective_at"].year == 2026 and r["effective_at"].month == 7
 
 
+def test_eonet_us_bbox_filter():
+    from app.services.alert_ingestion import _eonet_in_us
+    # Colorado fire (in US)
+    assert _eonet_in_us({"geometry": [{"type": "Point", "coordinates": [-107.6, 40.6]}]}) is True
+    # Australia fire (outside US) — should be filtered out
+    assert _eonet_in_us({"geometry": [{"type": "Point", "coordinates": [133.0, -25.0]}]}) is False
+    # no geometry → excluded (can't place it)
+    assert _eonet_in_us({"geometry": []}) is False
+
+
 def test_normalize_eonet_event_missing_geometry_defaults_time():
     from app.services.alert_ingestion import normalize_eonet_event
 
