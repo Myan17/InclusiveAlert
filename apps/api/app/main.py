@@ -1,5 +1,6 @@
 # apps/api/app/main.py
 from contextlib import asynccontextmanager
+import asyncio
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,16 +33,21 @@ async def lifespan(app: FastAPI):
             scheduler.add_job(fn, "interval", seconds=settings.alert_poll_interval_seconds, id=job_id)
         scheduler.add_job(fetch_and_store_fema_shelters, "interval", seconds=1800, id="fema_shelters")
         scheduler.start()
-        # Run once on startup — never let a slow/failing feed block boot.
-        for fn, job_id in _ALERT_JOBS:
+
+        # Kick off an immediate ingestion in the BACKGROUND so a slow external
+        # feed never blocks startup or the platform health check.
+        async def _startup_ingest():
+            for fn, job_id in _ALERT_JOBS:
+                try:
+                    await fn()
+                except Exception:
+                    logger.exception("startup ingestion failed for %s", job_id)
             try:
-                await fn()
+                await fetch_and_store_fema_shelters()
             except Exception:
-                logger.exception("startup ingestion failed for %s", job_id)
-        try:
-            await fetch_and_store_fema_shelters()
-        except Exception:
-            logger.exception("startup FEMA shelter sync failed")
+                logger.exception("startup FEMA shelter sync failed")
+
+        asyncio.create_task(_startup_ingest())
     yield
     if settings.environment != "testing" and settings.enable_live_ingestion:
         scheduler.shutdown()

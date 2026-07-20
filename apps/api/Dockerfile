@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir -e "."
 # Cache-bust: Render's layer cache can serve a stale COPY that misses newly
 # added files (e.g. alembic migrations), causing an "unknown revision" boot
 # crash. Bump this value to force a fresh source copy on the next build.
-ARG SOURCE_CACHEBUST=20260720-2
+ARG SOURCE_CACHEBUST=20260720-3
 RUN echo "source cachebust: ${SOURCE_CACHEBUST}"
 
 # Copy app source
