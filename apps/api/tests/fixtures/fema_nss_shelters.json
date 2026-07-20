@@ -1,0 +1,72 @@
+{
+ "features": [
+  {
+   "attributes": {
+    "shelter_id": 357549,
+    "shelter_name": "Boundary County Fairground",
+    "address_1": "6567 Recreation Park Rd",
+    "city": "BONNERS FERRY",
+    "state": "ID",
+    "zip": "83805",
+    "evacuation_capacity": 490,
+    "total_population": null,
+    "ada_compliant": null,
+    "wheelchair_accessible": "YES",
+    "generator_onsite": "NO",
+    "pet_accommodations_desc": null,
+    "latitude": 48.6913257,
+    "longitude": -116.3163092,
+    "org_main_phone": null,
+    "shelter_status_code": "OPEN"
+   },
+   "geometry": {
+    "x": -116.31630919999998,
+    "y": 48.69132570000005
+   }
+  },
+  {
+   "attributes": {
+    "shelter_id": 368198,
+    "shelter_name": "Pueblo County Recreation Center",
+    "address_1": "1650 Cooper Place",
+    "city": "Pueblo",
+    "state": "CO",
+    "zip": "81006",
+    "evacuation_capacity": null,
+    "total_population": null,
+    "ada_compliant": "UNK",
+    "wheelchair_accessible": "UNK",
+    "generator_onsite": "UNK",
+    "pet_accommodations_desc": null,
+    "latitude": 38.23817,
+    "longitude": -104.581698,
+    "org_main_phone": null,
+    "shelter_status_code": "OPEN"
+   },
+   "geometry": {
+    "x": -104.58169799999996,
+    "y": 38.238170000000025
+   }
+  },
+  {
+   "attributes": {
+    "shelter_id": "FIX-YES",
+    "shelter_name": "Accessible High School",
+    "address_1": "1 Main",
+    "city": "Houston",
+    "state": "TX",
+    "zip": "77002",
+    "evacuation_capacity": 500,
+    "total_population": 10,
+    "ada_compliant": "YES",
+    "wheelchair_accessible": "YES",
+    "generator_onsite": "NO",
+    "pet_accommodations_desc": "Service animals only",
+    "latitude": 29.76,
+    "longitude": -95.37,
+    "org_main_phone": "713-555-0100",
+    "shelter_status_code": "OPEN"
+   }
+  }
+ ]
+}
