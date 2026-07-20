@@ -33,9 +33,6 @@ services:
         value: "60"
       - key: ALERT_POLL_INTERVAL_SECONDS
         value: "300"
-      # Serve only the curated demo alerts (disable live NWS/USGS ingestion).
-      - key: ENABLE_LIVE_INGESTION
-        value: "false"
       # CORS: the GitHub Pages origin (path is not part of the origin).
       - key: ALLOWED_ORIGINS
         value: https://myan17.github.io
