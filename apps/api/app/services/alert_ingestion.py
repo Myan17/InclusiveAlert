@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 NWS_ALERTS_URL = "https://api.weather.gov/alerts/active?status=actual&message_type=alert"
 USGS_EARTHQUAKES_URL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_hour.geojson"
+EONET_WILDFIRES_URL = "https://eonet.gsfc.nasa.gov/api/v3/events?category=wildfires&status=open"
 
 SEVERITY_MAP = {"extreme": "extreme", "severe": "severe", "moderate": "moderate", "minor": "minor"}
 
@@ -71,6 +72,37 @@ def normalize_usgs_event(feature: dict) -> dict:
         "source_confidence": 1.0,
         "raw_payload": feature,
         # Geometry column is MULTIPOLYGON; store None for USGS points to avoid type mismatch
+        "geometry_wkt": None,
+    }
+
+
+def normalize_eonet_event(event: dict) -> dict:
+    """NASA EONET wildfire event → hazard_event dict.
+
+    EONET has no severity field; an active tracked wildfire is treated as
+    'severe'. Geometry is a Point (or a track of Points); the hazard_events
+    geometry column is MULTIPOLYGON, so we store None (like USGS) rather than
+    forcing a type mismatch — the location context lives in the title.
+    """
+    geoms = event.get("geometry") or []
+    latest = geoms[-1] if geoms else {}
+    effective = _parse_dt(latest.get("date")) or datetime.now(timezone.utc)
+    title = event.get("title")
+    return {
+        "external_id": event["id"],
+        "source": "eonet",
+        "hazard_type": "wildfire",
+        "severity": "severe",
+        "certainty": "observed",
+        "urgency": "immediate",
+        "headline": title,
+        "description": title,
+        "instruction": None,
+        "area_description": title,
+        "effective_at": effective,
+        "expires_at": None,
+        "source_confidence": 1.0,
+        "raw_payload": event,
         "geometry_wkt": None,
     }
 
@@ -170,4 +202,29 @@ async def fetch_and_store_usgs_events() -> int:
                 count += 1
         await db.commit()  # single commit for all new events
     logger.info(f"USGS: ingested {count} new events (checked {len(features)})")
+    return count
+
+
+async def fetch_and_store_eonet_wildfires() -> int:
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.get(
+                EONET_WILDFIRES_URL,
+                headers={"User-Agent": "InclusiveAlert/0.1 contact@inclusivealert.dev"},
+            )
+            resp.raise_for_status()
+            events = resp.json().get("events", [])
+        except Exception as e:
+            logger.error(f"EONET fetch failed: {e}")
+            return 0
+
+    count = 0
+    async with AsyncSessionLocal() as db:
+        for event in events:
+            data = normalize_eonet_event(event)
+            result = await _upsert_event(db, data)
+            if result:
+                count += 1
+        await db.commit()
+    logger.info(f"EONET: ingested {count} new wildfires (checked {len(events)})")
     return count
