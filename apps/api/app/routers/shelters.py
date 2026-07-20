@@ -81,6 +81,8 @@ async def get_ranked_shelters(
                     "lat": float(s_lat),
                     "lon": float(s_lon),
                     "source": shelter.source or "db",
+                    "phone": shelter.phone,
+                    "verified_by": shelter.verified_by,
                 })
         else:
             # No PostGIS — use lat/lon columns directly
@@ -114,6 +116,8 @@ async def get_ranked_shelters(
                     "lat": float(s_lat),
                     "lon": float(s_lon),
                     "source": shelter.source or "db",
+                    "phone": shelter.phone,
+                    "verified_by": shelter.verified_by,
                 })
     except Exception:
         # Don't let a DB read error silently fall through to the FEMA fallback
