@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 import uuid
 
@@ -35,6 +35,28 @@ class ShelterUpdate(BaseModel):
     current_occupancy: Optional[int] = None
     status: Optional[str] = None
     phone: Optional[str] = None
+
+
+class ShelterDetail(BaseModel):
+    """Full shelter record returned by the authority create/verify endpoints."""
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    external_id: Optional[str] = None
+    name: str
+    address: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    status: str
+    capacity: Optional[int] = None
+    current_occupancy: Optional[int] = None
+    wheelchair_accessible: Optional[bool] = None
+    ada_compliant: Optional[bool] = None
+    generator_onsite: Optional[bool] = None
+    asl_support: Optional[bool] = None
+    pet_policy: str
+    source: str
+    phone: Optional[str] = None
+    verified_by: Optional[uuid.UUID] = None
 
 
 class ShelterCreate(BaseModel):
