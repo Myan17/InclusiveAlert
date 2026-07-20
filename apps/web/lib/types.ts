@@ -42,11 +42,12 @@ export interface Shelter {
   name: string
   address: string | null
   distance_km: number
-  wheelchair_accessible: boolean
-  ada_compliant: boolean
-  generator_onsite: boolean
-  asl_support: boolean
-  pet_policy: "pets_allowed" | "no_pets" | "service_animals_only"
+  // Tri-state: true/false confirmed, null = unconfirmed (real feeds often blank).
+  wheelchair_accessible: boolean | null
+  ada_compliant: boolean | null
+  generator_onsite: boolean | null
+  asl_support: boolean | null
+  pet_policy: "pets_allowed" | "no_pets" | "service_animals_only" | "unknown"
   status: string
   capacity: number | null
   current_occupancy: number | null
@@ -54,6 +55,8 @@ export interface Shelter {
   lat: number | null
   lon: number | null
   source: string
+  phone: string | null
+  verified_by: string | null
 }
 
 export interface MatchBreakdown {

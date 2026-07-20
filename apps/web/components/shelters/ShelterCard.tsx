@@ -55,6 +55,19 @@ export function ShelterCard({ shelter, rank }: ShelterCardProps) {
     ? Math.round((shelter.current_occupancy / shelter.capacity) * 100)
     : null
 
+  // Honest data: never fabricate accessibility. When every attribute is unknown,
+  // say so and offer the phone rather than implying inaccessibility.
+  const accessUnconfirmed =
+    shelter.wheelchair_accessible === null &&
+    shelter.ada_compliant === null &&
+    shelter.generator_onsite === null &&
+    shelter.asl_support === null
+  const sourceLabel = shelter.verified_by
+    ? "✓ Verified"
+    : shelter.source === "fema_nss"
+    ? "FEMA NSS"
+    : shelter.source
+
   return (
     <Card
       className="bg-card border-border"
@@ -68,6 +81,9 @@ export function ShelterCard({ shelter, rank }: ShelterCardProps) {
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-0.5">
               <MapPin className="h-3 w-3 shrink-0" />
               <span>#{rank} · {shelter.distance_km.toFixed(1)} km away</span>
+              <span className="px-1 rounded bg-muted/60 text-muted-foreground/80" title={`Data source: ${sourceLabel}`}>
+                {sourceLabel}
+              </span>
             </div>
             <p className="text-sm font-semibold text-foreground leading-tight">{shelter.name}</p>
             {shelter.address && (
@@ -92,7 +108,7 @@ export function ShelterCard({ shelter, rank }: ShelterCardProps) {
 
         {/* Accessibility badges */}
         <div className="flex flex-wrap gap-1" role="list" aria-label="Accessibility features">
-          {shelter.wheelchair_accessible && (
+          {shelter.wheelchair_accessible === true && (
             <AccessBadge
               icon={<Accessibility className="h-3 w-3" />}
               label="Wheelchair"
@@ -100,7 +116,7 @@ export function ShelterCard({ shelter, rank }: ShelterCardProps) {
               title="Wheelchair accessible entrance and facilities"
             />
           )}
-          {shelter.ada_compliant && (
+          {shelter.ada_compliant === true && (
             <AccessBadge
               icon={<span className="font-bold text-[9px]">ADA</span>}
               label="Compliant"
@@ -108,7 +124,7 @@ export function ShelterCard({ shelter, rank }: ShelterCardProps) {
               title="Fully ADA compliant — accessible restrooms, ramps, signage"
             />
           )}
-          {shelter.generator_onsite && (
+          {shelter.generator_onsite === true && (
             <AccessBadge
               icon={<Zap className="h-3 w-3" />}
               label="Generator"
@@ -116,7 +132,7 @@ export function ShelterCard({ shelter, rank }: ShelterCardProps) {
               title="Backup generator — critical for power-dependent medical equipment"
             />
           )}
-          {(shelter as any).asl_support && (
+          {shelter.asl_support === true && (
             <AccessBadge
               icon={<Hand className="h-3 w-3" />}
               label="ASL Staff"
@@ -141,6 +157,18 @@ export function ShelterCard({ shelter, rank }: ShelterCardProps) {
             />
           )}
         </div>
+
+        {/* Honest unknown state — never imply accessibility we don't have. */}
+        {accessUnconfirmed && (
+          <p className="text-[10px] text-muted-foreground italic">
+            Accessibility unconfirmed —{" "}
+            {shelter.phone ? (
+              <>call to verify: <a href={`tel:${shelter.phone}`} className="underline">{shelter.phone}</a></>
+            ) : (
+              "call ahead to confirm"
+            )}
+          </p>
+        )}
 
         {/* Capacity bar */}
         {shelter.capacity !== null && occupancyPct !== null && (
