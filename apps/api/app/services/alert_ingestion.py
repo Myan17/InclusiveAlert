@@ -28,6 +28,24 @@ def _usgs_magnitude_to_severity(mag: float) -> str:
     return "unknown"
 
 
+def _geojson_to_multipolygon_wkt(geom: dict | None) -> str | None:
+    """Convert an NWS GeoJSON geometry to a MULTIPOLYGON WKT for the
+    hazard_events.geometry column. Polygons are wrapped as single-polygon
+    MultiPolygons; non-areal geometries (points/lines) return None."""
+    if not geom:
+        return None
+    try:
+        from shapely.geometry import shape, Polygon, MultiPolygon
+        g = shape(geom)
+        if isinstance(g, Polygon):
+            g = MultiPolygon([g])
+        elif not isinstance(g, MultiPolygon):
+            return None
+        return g.wkt
+    except Exception:
+        return None
+
+
 def normalize_nws_alert(feature: dict) -> dict:
     props = feature.get("properties", {})
     event_name = props.get("event", "unknown").lower().replace(" ", "_")
@@ -46,7 +64,7 @@ def normalize_nws_alert(feature: dict) -> dict:
         "expires_at": _parse_dt(props.get("expires")),
         "source_confidence": 1.0,
         "raw_payload": feature,
-        "geometry_wkt": None,  # NWS polygons need separate processing
+        "geometry_wkt": _geojson_to_multipolygon_wkt(feature.get("geometry")),
     }
 
 
