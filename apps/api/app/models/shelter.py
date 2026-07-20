@@ -32,12 +32,20 @@ class Shelter(Base):
     status: Mapped[str] = mapped_column(String(20), default="open")
     capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     current_occupancy: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    wheelchair_accessible: Mapped[bool] = mapped_column(Boolean, default=False)
-    ada_compliant: Mapped[bool] = mapped_column(Boolean, default=False)
-    generator_onsite: Mapped[bool] = mapped_column(Boolean, default=False)
-    pet_policy: Mapped[str] = mapped_column(String(20), default="no_pets")
+
+    # Accessibility attributes are TRI-STATE: True/False = confirmed,
+    # None = unconfirmed (real feeds usually leave these blank). Never guess.
+    wheelchair_accessible: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    ada_compliant: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    generator_onsite: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    asl_support: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    pet_policy: Mapped[str] = mapped_column(String(20), default="unknown")
     population_types: Mapped[list] = mapped_column(JSON, default=list)
-    asl_support: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Provenance: where the row came from and who confirmed the accessibility.
     source: Mapped[str] = mapped_column(String(50), default="fema_nss")
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    verified_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     last_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
