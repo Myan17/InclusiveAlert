@@ -1,16 +1,25 @@
 import logging
-from fastapi import APIRouter, Depends, Query
+import uuid
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from app.deps import get_current_user
 from app.database import get_async_session
 from app.models.user_profile import UserProfile
 from app.models.shelter import Shelter
-from app.schemas.shelter import ShelterResponse
+from app.models.audit_event import AuditEvent
+from app.schemas.shelter import ShelterResponse, ShelterCreate, ShelterUpdate, ShelterDetail
 from app.services.shelter_ranking import fetch_fema_shelters, rank_shelters, compute_shelter_score
+from app.services.shelter_ingestion import _set_location
 from app.services.geofence import compute_distance_km
 
 logger = logging.getLogger(__name__)
+
+
+def _require_authority(user: UserProfile) -> None:
+    if user.role != "authority":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Authority role required")
 
 router = APIRouter(prefix="/shelters", tags=["shelters"])
 
@@ -122,3 +131,67 @@ async def get_ranked_shelters(
         return []
     ranked = rank_shelters(shelters, victim_needs)
     return ranked[:10]
+
+
+@router.post("", response_model=ShelterDetail, status_code=status.HTTP_201_CREATED)
+async def create_shelter(
+    payload: ShelterCreate,
+    current_user: UserProfile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Authority-seeded facility (school, church, etc.), verified on creation."""
+    _require_authority(current_user)
+    now = datetime.now(timezone.utc)
+    shelter = Shelter(
+        id=uuid.uuid4(),
+        name=payload.name,
+        address=payload.address,
+        lat=payload.lat,
+        lon=payload.lon,
+        status=payload.status,
+        capacity=payload.capacity,
+        current_occupancy=payload.current_occupancy,
+        wheelchair_accessible=payload.wheelchair_accessible,
+        ada_compliant=payload.ada_compliant,
+        generator_onsite=payload.generator_onsite,
+        asl_support=payload.asl_support,
+        pet_policy=payload.pet_policy,
+        phone=payload.phone,
+        source="authority",
+        verified_by=current_user.id,
+        last_verified_at=now,
+    )
+    _set_location(shelter, payload.lat, payload.lon)
+    db.add(shelter)
+    db.add(AuditEvent(actor_id=current_user.id, action="shelter.create",
+                      data_category="shelter", details={"name": payload.name}))
+    await db.commit()
+    await db.refresh(shelter)
+    return shelter
+
+
+@router.patch("/{shelter_id}", response_model=ShelterDetail)
+async def update_shelter(
+    shelter_id: uuid.UUID,
+    payload: ShelterUpdate,
+    current_user: UserProfile = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Authority confirms/edits a shelter's accessibility; marks it verified."""
+    _require_authority(current_user)
+    shelter = (
+        await db.execute(select(Shelter).where(Shelter.id == shelter_id))
+    ).scalar_one_or_none()
+    if shelter is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shelter not found")
+
+    changes = payload.model_dump(exclude_unset=True)
+    for field, value in changes.items():
+        setattr(shelter, field, value)
+    shelter.verified_by = current_user.id
+    shelter.last_verified_at = datetime.now(timezone.utc)
+    db.add(AuditEvent(actor_id=current_user.id, action="shelter.verify",
+                      data_category="shelter", details={"shelter_id": str(shelter_id), "changes": changes}))
+    await db.commit()
+    await db.refresh(shelter)
+    return shelter
