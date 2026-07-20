@@ -59,6 +59,26 @@ export interface Shelter {
   verified_by: string | null
 }
 
+export interface ShelterDetail {
+  id: string
+  external_id: string | null
+  name: string
+  address: string | null
+  lat: number | null
+  lon: number | null
+  status: string
+  capacity: number | null
+  current_occupancy: number | null
+  wheelchair_accessible: boolean | null
+  ada_compliant: boolean | null
+  generator_onsite: boolean | null
+  asl_support: boolean | null
+  pet_policy: string
+  source: string
+  phone: string | null
+  verified_by: string | null
+}
+
 export interface MatchBreakdown {
   proximity: number
   skill_fit: number

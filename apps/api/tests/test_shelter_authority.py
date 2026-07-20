@@ -61,6 +61,22 @@ async def test_non_authority_cannot_create_or_patch():
 
 
 @pytest.mark.asyncio
+async def test_authority_can_list_shelters_with_ids():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        atok = await get_token(client, "auth3@test.com", "authority")
+        await client.post("/shelters", json={"name": "Listable Shelter", "lat": 30.0, "lon": -95.0},
+                          headers={"Authorization": f"Bearer {atok}"})
+        r = await client.get("/shelters", headers={"Authorization": f"Bearer {atok}"})
+        assert r.status_code == 200
+        names = [s["name"] for s in r.json()]
+        assert "Listable Shelter" in names
+        assert all("id" in s for s in r.json())
+        # non-authority forbidden
+        vtok = await get_token(client, "vic2@test.com", "victim")
+        assert (await client.get("/shelters", headers={"Authorization": f"Bearer {vtok}"})).status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_patch_missing_shelter_404():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         atok = await get_token(client, "auth2@test.com", "authority")
