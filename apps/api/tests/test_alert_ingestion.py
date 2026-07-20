@@ -59,6 +59,45 @@ def test_normalize_usgs_event():
     assert result["severity"] == "moderate"  # mag 5.2 → moderate
     assert result["external_id"] == "us7000test"
 
+
+EONET_WILDFIRE_FIXTURE = {
+    "id": "EONET_21403",
+    "title": "Wildfire Big Gulch, Moffat, Colorado",
+    "categories": [{"id": "wildfires", "title": "Wildfires"}],
+    "geometry": [
+        {
+            "magnitudeValue": 1600.0,
+            "magnitudeUnit": "acres",
+            "date": "2026-07-19T21:36:00Z",
+            "type": "Point",
+            "coordinates": [-107.671833, 40.681667],
+        }
+    ],
+}
+
+
+def test_normalize_eonet_event():
+    from app.services.alert_ingestion import normalize_eonet_event
+
+    r = normalize_eonet_event(EONET_WILDFIRE_FIXTURE)
+    assert r["source"] == "eonet"
+    assert r["hazard_type"] == "wildfire"
+    assert r["severity"] == "severe"
+    assert r["external_id"] == "EONET_21403"
+    assert r["headline"] == "Wildfire Big Gulch, Moffat, Colorado"
+    assert "Moffat" in (r["area_description"] or "")
+    # Point geometry can't live in the MULTIPOLYGON column → None, like USGS.
+    assert r["geometry_wkt"] is None
+    assert r["effective_at"].year == 2026 and r["effective_at"].month == 7
+
+
+def test_normalize_eonet_event_missing_geometry_defaults_time():
+    from app.services.alert_ingestion import normalize_eonet_event
+
+    r = normalize_eonet_event({"id": "EONET_X", "title": "Wildfire Nowhere", "geometry": []})
+    assert r["external_id"] == "EONET_X"
+    assert r["effective_at"] is not None  # falls back to now, never crashes
+
 @pytest.mark.asyncio
 async def test_upsert_deduplicates_external_id():
     """Second upsert with same external_id returns None (no duplicate row created)."""

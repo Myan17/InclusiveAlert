@@ -1,0 +1,48 @@
+{
+  "events": [
+    {
+      "id": "EONET_21403",
+      "title": "Wildfire Big Gulch, Moffat, Colorado",
+      "categories": [
+        {
+          "id": "wildfires",
+          "title": "Wildfires"
+        }
+      ],
+      "geometry": [
+        {
+          "magnitudeValue": 1600.0,
+          "magnitudeUnit": "acres",
+          "date": "2026-07-19T21:36:00Z",
+          "type": "Point",
+          "coordinates": [
+            -107.671833,
+            40.681667
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EONET_21421",
+      "title": "Wildfire BROOK, Shasta, California",
+      "categories": [
+        {
+          "id": "wildfires",
+          "title": "Wildfires"
+        }
+      ],
+      "geometry": [
+        {
+          "magnitudeValue": 502.0,
+          "magnitudeUnit": "acres",
+          "date": "2026-07-18T19:12:00Z",
+          "type": "Point",
+          "coordinates": [
+            -122.197625,
+            40.698456
+          ]
+        }
+      ]
+    }
+  ]
+}
