@@ -68,11 +68,13 @@ PostgreSQL + PostGIS   ◄── alembic migrations (enable PostGIS on boot)
 
 ## Testing
 
-61 tests run on every push: 55 pytest cases against a real PostGIS service
+67 tests run on every push: 61 pytest cases against a real PostGIS service
 container (not a mock — the geofence and ranking logic is SQL-level), plus 6
 Jest cases on the frontend, with `tsc --noEmit` and a production `next build`.
+Latest CI run: **61 passed, 74.81% line coverage** on `app/`. (55 test
+functions; 61 collected cases — several are parametrized.)
 
-| Suite | Cases | Covers |
+| Suite | Test functions | Covers |
 |---|---|---|
 | `test_alert_ingestion.py` | 9 | NWS/USGS/EONET normalizers, outage tolerance |
 | `test_personalized_alert.py` | 8 | per-disability message generation |
@@ -87,7 +89,7 @@ Jest cases on the frontend, with `tsc --noEmit` and a production `next build`.
 | `test_database.py` / `test_models.py` / `test_shelter_provenance.py` | 4 | schema, provenance invariants |
 | `apps/web/__tests__` | 6 | API client, auth store |
 
-Coverage is gated at 60% in CI; the run fails below that line.
+Coverage is gated at 70% in CI; the run fails below that line.
 
 ```bash
 # API — needs the compose Postgres up on 5433

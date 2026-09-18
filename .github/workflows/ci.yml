@@ -62,7 +62,7 @@ jobs:
       - name: Test
         run: |
           pytest --cov=app --cov-report=term-missing --cov-report=xml \
-                 --cov-fail-under=60 -q
+                 --cov-fail-under=70 -q
 
       - uses: actions/upload-artifact@v4
         if: always()
