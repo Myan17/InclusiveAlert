@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API tests (pytest + coverage)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+
+    services:
+      # PostGIS, not plain Postgres: the geofence and shelter-ranking tests
+      # exercise GeoAlchemy2 geography columns.
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: inclusivealert_test
+          POSTGRES_USER: ia_user
+          POSTGRES_PASSWORD: ia_dev_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ia_user -d inclusivealert_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://ia_user:ia_dev_password@localhost:5433/inclusivealert_test
+      DATABASE_URL: postgresql+asyncpg://ia_user:ia_dev_password@localhost:5433/inclusivealert_test
+      SECRET_KEY: ci-secret-key-not-used-outside-github-actions
+      ENVIRONMENT: testing
+      ENABLE_LIVE_INGESTION: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Enable PostGIS extension
+        run: |
+          PGPASSWORD=ia_dev_password psql -h localhost -p 5433 -U ia_user \
+            -d inclusivealert_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+      - name: Test
+        run: |
+          pytest --cov=app --cov-report=term-missing --cov-report=xml \
+                 --cov-fail-under=60 -q
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage
+          path: apps/api/coverage.xml
+
+  web:
+    name: Web tests + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: /InclusiveAlert

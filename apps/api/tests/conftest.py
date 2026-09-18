@@ -1,5 +1,6 @@
 # apps/api/tests/conftest.py
 import asyncio
+import os
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.pool import NullPool
@@ -7,7 +8,11 @@ from app.database import Base, get_async_session
 from app.main import app as fastapi_app
 import app.models  # noqa: F401 — ensures all models are registered
 
-TEST_DB_URL = "postgresql+asyncpg://ia_user:ia_dev_password@localhost:5433/inclusivealert_test"
+# Overridable so CI can point at its own Postgres service container.
+TEST_DB_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://ia_user:ia_dev_password@localhost:5433/inclusivealert_test",
+)
 
 @pytest.fixture(scope="session")
 def event_loop():
